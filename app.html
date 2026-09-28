@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MapleMath</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 760px; margin: 0 auto; padding: 1em; color: #2e2418; background: #faf6ed; }
+  h1 { font-size: 1.5em; }
+  .card { background: #fff; border: 1px solid #e8d9c2; border-radius: 10px; padding: 1em 1.2em; margin: 1em 0; }
+  .card h2 { margin-top: 0; font-size: 1.1em; }
+  label { display: inline-block; min-width: 195px; margin: 0.3em 0; }
+  input, select { padding: 0.3em; border: 1px solid #cdb691; border-radius: 6px; width: 110px; }
+  .out { background: #f5ecda; border-left: 4px solid #8a4b1f; padding: 0.6em 0.9em; border-radius: 0 8px 8px 0; margin-top: 0.7em; }
+  .preset { display:inline-block; margin: 0 0.4em 0.4em 0; padding: 0.25em 0.7em; background: #f0e3cb; border-radius: 20px; cursor: pointer; font-size: 0.85em; border: 1px solid #cdb691; }
+  .note { color: #77603c; font-size: 0.9em; }
+  a { color: #8a4b1f; }
+</style>
+</head>
+<body>
+<h1>&#127809; MapleMath</h1>
+<p class="note">Constants: Rule of 86 - gallons of sap per gallon of syrup equals 86 divided by sap sugar percent. One tap per 10-17 in tree, two to 24 in, three max. About 10 gal of sap per tap per season. <a href="index.html">About</a></p>
+
+<div class="card">
+  <h2>1. The sap</h2>
+  <div>
+    <span class="preset" data-s="1.8">Lean 1.8%</span>
+    <span class="preset" data-s="2.2">Typical 2.2%</span>
+    <span class="preset" data-s="3.2">Rich 3.2%</span>
+  </div>
+  <label for="sugar">Sap sugar (%):</label><input id="sugar" type="number" value="2.2" step="0.1" min="0.5">
+  <div class="out" id="ratioOut">-</div>
+</div>
+
+<div class="card">
+  <h2>2. The trees</h2>
+  <label for="diameter">Tree diameter (in):</label><input id="diameter" type="number" value="14" min="1"><br>
+  <label for="trees">Trees like this:</label><input id="trees" type="number" value="5" min="0">
+  <div class="out" id="tapOut">-</div>
+</div>
+
+<div class="card">
+  <h2>3. Season and boil</h2>
+  <label for="galTap">Sap per tap (gal):</label><input id="galTap" type="number" value="10" min="1"><br>
+  <label for="evap">Boil-off rate (gal/hr):</label><input id="evap" type="number" value="6" min="1">
+  <div class="out" id="seasonOut">-</div>
+  <div class="out" id="boilOut">-</div>
+</div>
+
+<div class="card">
+  <h2>4. Bottles and worth</h2>
+  <label for="fuel">Fuel for the boil ($):</label><input id="fuel" type="number" value="60" min="0"><br>
+  <label for="misc">Taps, buckets, filters ($):</label><input id="misc" type="number" value="25" min="0"><br>
+  <label for="retail">Retail price ($/gal):</label><input id="retail" type="number" value="55" min="0">
+  <div class="out" id="bottleOut">-</div>
+  <div class="out" id="worthOut">-</div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+  function fmt(n, d) { return n.toFixed(d === undefined ? 1 : d); }
+
+  function update() {
+    var sugar = Math.max(0.5, num('sugar'));
+    var ratio = MapleMath.sapRatio(sugar);
+    document.getElementById('ratioOut').textContent =
+      fmt(ratio, 0) + ' gallons of sap per gallon of syrup. ' + MapleMath.ratioVerdict(sugar);
+
+    var perTree = MapleMath.tapsForTree(num('diameter'));
+    var taps = perTree * Math.round(num('trees'));
+    document.getElementById('tapOut').textContent =
+      perTree + ' tap' + (perTree === 1 ? '' : 's') + ' per tree, ' + taps + ' total. ' + MapleMath.tapVerdict(num('diameter'));
+
+    var sap = MapleMath.seasonSap(taps, Math.max(1, num('galTap')));
+    var syrup = MapleMath.syrupGal(sap, sugar);
+    document.getElementById('seasonOut').textContent =
+      fmt(sap, 0) + ' gal of sap over the season, finishing to about ' + fmt(syrup, 2) + ' gal of syrup.';
+    var hours = MapleMath.boilHours(sap, Math.max(1, num('evap')));
+    document.getElementById('boilOut').textContent =
+      'About ' + fmt(hours, 0) + ' hours at the pan. ' + MapleMath.boilVerdict(hours);
+
+    var bottles = MapleMath.bottleCount(syrup, 250);
+    document.getElementById('bottleOut').textContent =
+      Math.floor(bottles) + ' bottles of 250 ml - one for the shelf, the rest for people who will never reciprocate.';
+    document.getElementById('worthOut').textContent =
+      MapleMath.worthVerdict(syrup, num('retail'), num('fuel'), num('misc'));
+  }
+
+  var presets = document.querySelectorAll('.preset');
+  for (var i = 0; i < presets.length; i++) {
+    presets[i].addEventListener('click', function () {
+      document.getElementById('sugar').value = this.getAttribute('data-s');
+      update();
+    });
+  }
+  var inputs = document.querySelectorAll('input, select');
+  for (var j = 0; j < inputs.length; j++) inputs[j].addEventListener('input', update);
+  update();
+})();
+</script>
+</body>
+</html>
